@@ -1,0 +1,60 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id 'com.google.gms.google-services' // Ensure this line is present
+}
+
+ext.kotlin_version = "2.1.0"
+
+android {
+    namespace = "com.example.login" // Your application ID
+    compileSdk 34 // ✅ Latest stable SDK
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17 // ✅ Update to 17
+        targetCompatibility JavaVersion.VERSION_17 // ✅ Update to 17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17" // ✅ Ensure compatibility with Java 17
+    }
+
+    defaultConfig {
+        applicationId "com.example.login" // Your application ID
+        minSdkVersion 23
+        targetSdkVersion 34
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled true
+    }
+
+    // ✅ Add JVM Toolchain to avoid version mismatch
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(17))
+        }
+    }
+
+    buildFeatures {
+        buildConfig true // Enable custom BuildConfig fields
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.debug // Use debug signing for now; configure for release later
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+    implementation platform('com.google.firebase:firebase-bom:32.7.0') // ✅ Latest Firebase BOM
+    implementation "com.google.firebase:firebase-auth"
+    implementation "com.google.firebase:firebase-firestore"
+    implementation "com.google.firebase:firebase-messaging"
+}
