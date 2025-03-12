@@ -5,19 +5,20 @@ plugins {
     id 'com.google.gms.google-services' // Ensure this line is present
 }
 
-ext.kotlin_version = "2.1.0"
+// Remove this line as it's already defined in the root build.gradle
+// ext.kotlin_version = "2.1.0"
 
 android {
     namespace = "com.example.login" // Your application ID
-    compileSdk 34 // ✅ Latest stable SDK
+    compileSdk 34 // Latest stable SDK
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17 // ✅ Update to 17
-        targetCompatibility JavaVersion.VERSION_17 // ✅ Update to 17
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = "17" // ✅ Ensure compatibility with Java 17
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -29,7 +30,6 @@ android {
         multiDexEnabled true
     }
 
-    // ✅ Add JVM Toolchain to avoid version mismatch
     java {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(17))
@@ -52,8 +52,9 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
-    implementation platform('com.google.firebase:firebase-bom:32.7.0') // ✅ Latest Firebase BOM
+    // Use the version from root build.gradle
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation platform('com.google.firebase:firebase-bom:32.7.0') // Latest Firebase BOM
     implementation "com.google.firebase:firebase-auth"
     implementation "com.google.firebase:firebase-firestore"
     implementation "com.google.firebase:firebase-messaging"
