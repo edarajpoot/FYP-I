@@ -12,7 +12,7 @@ class _HomePageState extends State<HomePage> {
 
   final user = FirebaseAuth.instance.currentUser;
 
-  signout()async{
+  Future<void> signout()async{
     await FirebaseAuth.instance.signOut();
   }
 

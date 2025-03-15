@@ -31,7 +31,7 @@ class _LogInScreenState extends State<LogInScreen> {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email.text,
-        password: password.text,
+        password: password.text,      //extract data
       );
 
       // After successful login, navigate to home screen
