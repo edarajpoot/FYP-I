@@ -24,12 +24,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  //final TextEditingController phoneNoController = TextEditingController();
+
   bool _isLoading = false; // Loading state
 
   Future<void> signup() async {
     String name = nameController.text.trim();
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
+    //String phoneNo = phoneNoController.text.trim();
 
     // **Validations**
     if (name.isEmpty || email.isEmpty || password.length < 6) {
@@ -59,6 +62,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         name: name,
         email: email,
         password: password,
+        // phoneNo: phoneNo,
       );
 
       await dbService.create(user, userCredential.user!.uid);
@@ -129,16 +133,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void navigateToKeyword() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const SetKeywordScreen()),
+      MaterialPageRoute(builder: (context) => const LogInScreen()),
     );
-  }
-
-  Future<void> resendVerificationEmail() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null && !user.emailVerified) {
-      await user.sendEmailVerification();
-      showInfoDialog("Verification email resent. Check your inbox.", false);
-    }
   }
 
 void checkEmailVerification() async {
@@ -202,7 +198,9 @@ void checkEmailVerification() async {
                     'Create new Account!',
                     style: TextStyle(fontSize: 14, color: Color.fromRGBO(37, 66, 43, 0.8)),
                   ),
+
                   const SizedBox(height: 20),
+
                   SizedBox(
                     width: 370,
                     height: 50,
@@ -215,6 +213,22 @@ void checkEmailVerification() async {
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: 370,
+                    height: 50,
+                    child: TextField(
+                      //controller: phoneNoController,
+                      decoration: InputDecoration(
+                        labelText: "Phone No",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                        prefixIcon: const Icon(Icons.phone),
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 10),
                   SizedBox(
                     width: 370,
@@ -274,12 +288,7 @@ void checkEmailVerification() async {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () async {
-                      await resendVerificationEmail();
-                    },
-                    child: const Text("Resend Verification Email", style: TextStyle(color: Colors.blue)),
-                  ),
+    
                 ],
               ),
             ),
@@ -301,10 +310,11 @@ class AppUser {
   final String name;
   final String email;
   final String password;
+  //final int phoneNo;
 
-  AppUser({required this.name, required this.email, required this.password});
+  AppUser({required this.name, required this.email, required this.password,});
 
   Map<String, dynamic> toMap() {
-    return {"name": name, "email": email, "password": password};
+    return {"name": name, "email": email, "password": password ,};
   }
 }
