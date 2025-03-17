@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:login/firestore_dummy_data.dart';
 import 'package:login/screens/home.dart';
 import 'package:login/screens/signup.dart';
 import 'package:login/screens/splash.dart';
@@ -27,26 +28,31 @@ class _LogInScreenState extends State<LogInScreen> {
   TextEditingController password = TextEditingController();
 
   Future<void> signIn() async {
-    // Added async keyword
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email.text,
-        password: password.text,      //extract data
-      );
+  try {
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email.text,
+      password: password.text,
+    );
 
-      // After successful login, navigate to home screen
-      // ignore: use_build_context_synchronously
+    // After successful login, populate dummy data if needed
+    // await FirestoreDummyData().populateDummyData();
+
+    // Check if widget is still mounted before using context
+    if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-            builder: (context) =>
-                const HomePage()), // Replace with your Home screen
+        MaterialPageRoute(builder: (context) => const HomePage()),
       );
-    } catch (e) {
-      // Show error if login fails
+    }
+  } catch (e) {
+    // Check if the widget is still mounted before showing dialog
+    if (mounted) {
       showErrorDialog(context, e.toString());
+    } else {
+      print("Error during sign in: $e");
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
