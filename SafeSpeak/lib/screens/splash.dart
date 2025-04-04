@@ -52,8 +52,7 @@ class SplashScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-    );
-                // Add navigation to the next screen here
+                  );  // Add navigation to the next screen here
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromRGBO(37, 66, 43, 1),

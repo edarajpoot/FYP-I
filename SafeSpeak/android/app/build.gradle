@@ -9,7 +9,7 @@ plugins {
 // ext.kotlin_version = "2.1.0"
 
 android {
-    namespace = "com.example.login" // Your application ID
+    namespace "com.example.login" // Your application ID
     compileSdk 34 // Latest stable SDK
 
     compileOptions {

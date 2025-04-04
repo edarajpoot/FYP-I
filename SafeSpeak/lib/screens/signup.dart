@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:login/database_service.dart';
 import 'package:login/screens/keyword.dart';
 import 'package:login/screens/login.dart';
+import 'package:login/screens/onboardingA.dart';
 import 'package:login/screens/splash.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 void main() {
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: SignUpScreen(), // Start with the SignUpScreen
+    home: SignUpScreen(),
   ));
 }
 
@@ -24,69 +25,85 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  //final TextEditingController phoneNoController = TextEditingController();
+  final TextEditingController phoneNoController = TextEditingController();
+  final TextEditingController emergencyModeController = TextEditingController();
 
-  bool _isLoading = false; // Loading state
+  bool _isLoading = false;
 
   Future<void> signup() async {
     String name = nameController.text.trim();
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
-    //String phoneNo = phoneNoController.text.trim();
+    String phoneNo = phoneNoController.text.trim();
+    bool emergencyMode = emergencyModeController.text.trim().toLowerCase() == 'true';
 
-    // **Validations**
     if (name.isEmpty || email.isEmpty || password.length < 6) {
       showErrorDialog("Enter a valid name, email & password (6+ characters).");
       return;
     }
 
-    // **Check if name contains only alphabets**
     if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(name)) {
       showErrorDialog("Name should only contain alphabets.");
       return;
     }
 
-    setState(() => _isLoading = true); // Show loading
+    setState(() => _isLoading = true);
 
     try {
-      UserCredential userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      await Future.delayed(const Duration(seconds: 2));
       await FirebaseAuth.instance.currentUser?.reload();
-
-      final user = AppUser(
+      String userID = userCredential.user!.uid;
+      final user = USER(
+        id: userID,
         name: name,
         email: email,
         password: password,
-        // phoneNo: phoneNo,
+        phoneNo: phoneNo,
+        emergencyMode: emergencyMode,
       );
 
-      await dbService.create(user, userCredential.user!.uid);
+      await dbService.createUser(user, userCredential.user!.uid);
+      print("User creation function called.");
 
-      // **Send email verification**
       if (userCredential.user != null && !userCredential.user!.emailVerified) {
         await userCredential.user!.sendEmailVerification();
-        showInfoDialog(
-          "A verification email has been sent. Please verify before logging in.",
-          false,
-        );
-
-        checkEmailVerification(); // Start checking verification status
-        //await FirebaseAuth.instance.signOut();
+        await showInfoDialog("A verification email has been sent. Please verify before logging in.");
+        checkEmailVerification(userID, name);
         return;
-
       } else {
-        navigateToKeyword(); // Directly go to login if already verified
+        navigateToWelcome(userID,name);
       }
     } catch (e) {
       showErrorDialog(e.toString());
     } finally {
-      setState(() => _isLoading = false); // Hide loading
+      setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> checkEmailVerification(String userID, String name) async {
+    for (int i = 0; i < 50; i++) {
+      await Future.delayed(const Duration(seconds: 3));
+      await FirebaseAuth.instance.currentUser?.reload();
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user != null && user.emailVerified) {
+        print("Email Verified!");
+        navigateToWelcome(userID, name);
+        return;
+      }
+    }
+    showErrorDialog("Email verification failed. Please try again.");
+  }
+
+  void navigateToWelcome(String userID, String name) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => WelcomeScreen(name: name, userID: userID)),
+    );
   }
 
   void showErrorDialog(String message) {
@@ -96,74 +113,40 @@ class _SignUpScreenState extends State<SignUpScreen> {
         title: const Text("Error"),
         content: Text(message),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text("OK"))
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))
         ],
       ),
     );
   }
 
-  Future<void> showInfoDialog(String message, bool navigate) async {
-  return showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text("Attention"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              if (navigate) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => LogInScreen()),
-                );
-              }
-            },
-            child: const Text("OK"),
-          ),
-        ],
-      );
-    },
-  );
-}
 
-
-  void navigateToKeyword() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LogInScreen()),
+  Future<void> resendVerificationEmail() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+      showInfoDialog("Verification email resent. Check your inbox.");
+    }
+  }
+  
+  Future<void> showInfoDialog(String message) async {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Attention"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
     );
   }
 
-void checkEmailVerification() async {
-  User? user = FirebaseAuth.instance.currentUser;
-
-  if (user == null) {
-    print("User is NULL. Cannot check verification.");
-    return;
-  }
-
-  for (int i = 0; i < 10; i++) { // 10 baar check karega (30 sec)
-    await Future.delayed(const Duration(seconds: 3));
-    await FirebaseAuth.instance.currentUser?.reload(); 
-    user = FirebaseAuth.instance.currentUser;
-
-    //print("Checking email verification: ${user?.emailVerified}");
-
-    if (user != null && user.emailVerified) {
-      print("Email Verified!");
-      navigateToKeyword();
-      return;
-    }
-  }
-  print("Verification timeout. User must verify manually.");
-}
-
-
-
-  @override
+ @override
   Widget build(BuildContext context) {
     FirebaseAuth.instance.setLanguageCode("en");
 
@@ -214,13 +197,13 @@ void checkEmailVerification() async {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
 
                   SizedBox(
                     width: 370,
                     height: 50,
                     child: TextField(
-                      //controller: phoneNoController,
+                      controller: phoneNoController,
                       decoration: InputDecoration(
                         labelText: "Phone No",
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
@@ -288,6 +271,13 @@ void checkEmailVerification() async {
                     ],
                   ),
                   const SizedBox(height: 10),
+
+                  TextButton(
+                    onPressed: () async {
+                      await resendVerificationEmail();
+                    },
+                    child: const Text("Resend Verification Email", style: TextStyle(color: Colors.green)),
+                  ),
     
                 ],
               ),
@@ -306,15 +296,32 @@ void checkEmailVerification() async {
   }
 }
 
-class AppUser {
+
+class USER {
+  final String id;
   final String name;
   final String email;
   final String password;
-  //final int phoneNo;
+  final String phoneNo;
+  final bool emergencyMode;
 
-  AppUser({required this.name, required this.email, required this.password,});
+  USER({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.password,
+    required this.phoneNo,
+    required this.emergencyMode,
+  });
 
   Map<String, dynamic> toMap() {
-    return {"name": name, "email": email, "password": password ,};
+    return {
+      "id": id,
+      "name": name,
+      "email": email,
+      "password": password,
+      "phoneNo": phoneNo,
+      "emergencyMode": emergencyMode,
+    };
   }
 }

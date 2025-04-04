@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:login/database_service.dart';
+import 'package:login/model/usermodel.dart';
+//import 'package:login/firestore_dummy_data.dart';
 import 'package:login/screens/home.dart';
 import 'package:login/screens/signup.dart';
 import 'package:login/screens/splash.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 
 void main() {
   runApp(const MaterialApp(
@@ -27,26 +31,52 @@ class _LogInScreenState extends State<LogInScreen> {
   TextEditingController password = TextEditingController();
 
   Future<void> signIn() async {
-    // Added async keyword
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email.text,
-        password: password.text,      //extract data
-      );
+  try {
+    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email.text,
+      password: password.text,
+    );
 
-      // After successful login, navigate to home screen
-      // ignore: use_build_context_synchronously
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-            builder: (context) =>
-                const HomePage()), // Replace with your Home screen
-      );
-    } catch (e) {
-      // Show error if login fails
-      showErrorDialog(context, e.toString());
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null && !user.emailVerified) {
+      await FirebaseAuth.instance.signOut();
+      showErrorDialog(context, "Please verify your email before logging in.");
+      return;
+    }
+
+    String? userId = user?.uid;
+    if (userId == null) {
+      showErrorDialog(context, "User not found. Please try again.");
+      return;
+      }
+
+    // **Properly define dbService**
+    DatabaseService dbService = DatabaseService(); 
+    UserModel? userData = await dbService.getUserData(userId);
+
+    if (userData != null) {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomePage(user: userData), // **Pass userData to HomeScreen**
+          ),
+        );
+      }
+    } else {
+      showErrorDialog(context, "User data not found.");
+    }
+  } catch (e) {
+    if (mounted) {
+      showErrorDialog(context, "Login failed: ${e.toString()}");
+    } else {
+      print("Error during sign-in: $e");
     }
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
