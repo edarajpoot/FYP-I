@@ -4,13 +4,9 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
     id 'com.google.gms.google-services' // Ensure this line is present
 }
-
-// Remove this line as it's already defined in the root build.gradle
-// ext.kotlin_version = "2.1.0"
-
 android {
     namespace "com.example.login" // Your application ID
-    compileSdk 34 // Latest stable SDK
+    compileSdk 35 // Latest stable SDK
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -58,4 +54,8 @@ dependencies {
     implementation "com.google.firebase:firebase-auth"
     implementation "com.google.firebase:firebase-firestore"
     implementation "com.google.firebase:firebase-messaging"
+}  
+
+kotlin {
+    jvmToolchain(17)
 }
