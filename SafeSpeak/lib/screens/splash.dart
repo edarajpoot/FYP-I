@@ -16,13 +16,15 @@ class SplashScreen extends StatelessWidget {
             Container(
               width: 120,
               height: 120,
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/logo.jpg'), // Replace with your logo's path
-                  fit: BoxFit.contain,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20), // 👈 Adjust this value to change roundness
+                image: const DecorationImage(
+                  image: AssetImage('assets/images/logo.jpg'),
+                  fit: BoxFit.cover,
+                  ),
+                  ),
                 ),
-              ),
-            ),
+
             const SizedBox(height: 20), // Spacing between logo and app name
             // App Name
             const Text(

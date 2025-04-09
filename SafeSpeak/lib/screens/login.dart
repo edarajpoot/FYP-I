@@ -1,82 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:login/database_service.dart';
+import 'package:login/model/contactModel.dart';
+import 'package:login/model/keywordModel.dart';
 import 'package:login/model/usermodel.dart';
-//import 'package:login/firestore_dummy_data.dart';
 import 'package:login/screens/home.dart';
 import 'package:login/screens/signup.dart';
 import 'package:login/screens/splash.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-
 void main() {
   runApp(const MaterialApp(
     debugShowCheckedModeBanner: false,
-    home: LogInScreen(), // Corrected home route
+    home: LogInScreen(),
   ));
 }
 
 class LogInScreen extends StatefulWidget {
-  const LogInScreen({Key? key}) : super(key: key); // Added Key parameter
+  const LogInScreen({Key? key}) : super(key: key);
 
   @override
-  // ignore: library_private_types_in_public_api
   _LogInScreenState createState() => _LogInScreenState();
 }
 
 class _LogInScreenState extends State<LogInScreen> {
-  // Added <LogInScreen>
   bool _rememberMe = false;
   bool _obscureText = true;
+  bool _isLoading = false; // Track loading state
   TextEditingController email = TextEditingController();
   TextEditingController password = TextEditingController();
 
   Future<void> signIn() async {
-  try {
-    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email.text,
-      password: password.text,
-    );
+    setState(() {
+      _isLoading = true; // Show loading indicator
+    });
 
-    User? user = FirebaseAuth.instance.currentUser;
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email.text,
+        password: password.text,
+      );
 
-    if (user != null && !user.emailVerified) {
-      await FirebaseAuth.instance.signOut();
-      showErrorDialog(context, "Please verify your email before logging in.");
-      return;
-    }
+      User? user = FirebaseAuth.instance.currentUser;
 
-    String? userId = user?.uid;
-    if (userId == null) {
-      showErrorDialog(context, "User not found. Please try again.");
-      return;
+      if (user != null && !user.emailVerified) {
+        await FirebaseAuth.instance.signOut();
+        showErrorDialog(context, "Please verify your email before logging in.");
+        return;
       }
 
-    // **Properly define dbService**
-    DatabaseService dbService = DatabaseService(); 
-    UserModel? userData = await dbService.getUserData(userId);
+      String? userId = user?.uid;
+      if (userId == null) {
+        showErrorDialog(context, "User not found. Please try again.");
+        return;
+      }
 
-    if (userData != null) {
+      DatabaseService dbService = DatabaseService();
+      UserModel? userData = await dbService.getUserData(userId);
+      KeywordModel? keywordData = await dbService.getKeywordData(userId);
+      List<ContactModel> contacts = [];
+
+      if (keywordData != null) {
+        String? keywordId = keywordData.keywordID;
+        if (keywordId != null) {
+          contacts = await dbService.getContactList(userId, keywordId);
+        }
+      }
+
+      if (userData != null) {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomePage(
+                user: userData,
+                keywordData: keywordData,
+                contacts: contacts,
+              ),
+            ),
+          );
+        }
+      } else {
+        showErrorDialog(context, "User data not found.");
+      }
+    } catch (e) {
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomePage(user: userData), // **Pass userData to HomeScreen**
-          ),
-        );
+        showErrorDialog(context, "Login failed: ${e.toString()}");
       }
-    } else {
-      showErrorDialog(context, "User data not found.");
-    }
-  } catch (e) {
-    if (mounted) {
-      showErrorDialog(context, "Login failed: ${e.toString()}");
-    } else {
-      print("Error during sign-in: $e");
+    } finally {
+      setState(() {
+        _isLoading = false; // Hide loading indicator after the process
+      });
     }
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -89,26 +104,22 @@ class _LogInScreenState extends State<LogInScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Back Button
               Align(
                 alignment: Alignment.topLeft,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 15.0),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back,
-                        color: Color.fromRGBO(37, 66, 43, 1)),
+                    icon: const Icon(Icons.arrow_back, color: Color.fromRGBO(37, 66, 43, 1)),
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) => const SplashScreen()),
+                        MaterialPageRoute(builder: (context) => const SplashScreen()),
                       );
                     },
                   ),
                 ),
               ),
               const SizedBox(height: 10),
-              // Illustration
               Container(
                 width: 150,
                 height: 150,
@@ -120,7 +131,6 @@ class _LogInScreenState extends State<LogInScreen> {
                 ),
               ),
               const SizedBox(height: 15),
-              // Tagline
               const Text(
                 'Welcome Back',
                 textAlign: TextAlign.center,
@@ -131,7 +141,6 @@ class _LogInScreenState extends State<LogInScreen> {
                 ),
               ),
               const SizedBox(height: 1),
-              // Description
               const Text(
                 'Login to your Account!',
                 textAlign: TextAlign.center,
@@ -142,7 +151,6 @@ class _LogInScreenState extends State<LogInScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Email TextField
               SizedBox(
                 width: 370,
                 height: 50,
@@ -159,7 +167,6 @@ class _LogInScreenState extends State<LogInScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              // Password TextField
               SizedBox(
                 width: 370,
                 height: 50,
@@ -176,7 +183,7 @@ class _LogInScreenState extends State<LogInScreen> {
                     suffixIcon: GestureDetector(
                       onTap: () {
                         setState(() {
-                          _obscureText = !_obscureText; // Toggle the visibility
+                          _obscureText = !_obscureText;
                         });
                       },
                       child: Icon(
@@ -188,7 +195,6 @@ class _LogInScreenState extends State<LogInScreen> {
                 ),
               ),
               const SizedBox(height: 1),
-              // Remember Me and Forget Password
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -198,14 +204,11 @@ class _LogInScreenState extends State<LogInScreen> {
                         value: _rememberMe,
                         onChanged: (bool? value) {
                           setState(() {
-                            _rememberMe = value ?? false; // Update state
+                            _rememberMe = value ?? false;
                           });
                         },
                       ),
-                      const Text(
-                        "Remember me",
-                        style: TextStyle(color: Colors.black),
-                      ),
+                      const Text("Remember me", style: TextStyle(color: Colors.black)),
                     ],
                   ),
                   GestureDetector(
@@ -214,40 +217,29 @@ class _LogInScreenState extends State<LogInScreen> {
                     },
                     child: const Text(
                       "Forget Password?",
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              // Login Button
-              ElevatedButton(
-                onPressed: () async {
-                  await signIn(); // Await the sign-in process
-                  // After successful login, navigate to the home screen
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromRGBO(37, 66, 43, 1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 100, vertical: 12),
-                ),
-                child: const Text(
-                  'Log In',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              _isLoading
+                  ? const CircularProgressIndicator() // Show progress indicator while logging in
+                  : ElevatedButton(
+                      onPressed: () async {
+                        await signIn();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromRGBO(37, 66, 43, 1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 12),
+                      ),
+                      child: const Text(
+                        'Log In',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
               const SizedBox(height: 3),
-              // Sign Up Text
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -256,16 +248,12 @@ class _LogInScreenState extends State<LogInScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) => const SignUpScreen()),
+                        MaterialPageRoute(builder: (context) => const SignUpScreen()),
                       );
                     },
                     child: const Text(
                       "Sign Up",
-                      style: TextStyle(
-                        color: Color.fromRGBO(37, 66, 43, 1),
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(color: Color.fromRGBO(37, 66, 43, 1), fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],

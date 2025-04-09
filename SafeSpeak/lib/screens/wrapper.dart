@@ -4,6 +4,8 @@ import 'package:login/screens/home.dart';
 import 'package:login/screens/splash.dart';
 import 'package:login/database_service.dart';
 import 'package:login/model/usermodel.dart';
+import 'package:login/model/keywordModel.dart';
+import 'package:login/model/contactModel.dart';
 
 class Wrapper extends StatefulWidget {
   const Wrapper({super.key});
@@ -35,7 +37,41 @@ class _WrapperState extends State<Wrapper> {
                 }
 
                 if (userSnapshot.hasData && userSnapshot.data != null) {
-                  return HomePage(user: userSnapshot.data!);
+                  // Fetch the keywordData and contacts
+                  return FutureBuilder<KeywordModel?>(
+                    future: DatabaseService().getKeywordData(user.uid),
+                    builder: (context, keywordSnapshot) {
+                      if (keywordSnapshot.connectionState == ConnectionState.waiting) {
+                        return const SplashScreen();
+                      }
+
+                      if (keywordSnapshot.hasData && keywordSnapshot.data != null) {
+                        // Fetch the contacts based on the keyword data
+                        return FutureBuilder<List<ContactModel>>(
+                          future: DatabaseService().getContactList(
+                            user.uid, 
+                            keywordSnapshot.data?.keywordID ?? 'default_keyword',                          ),
+                          builder: (context, contactsSnapshot) {
+                            if (contactsSnapshot.connectionState == ConnectionState.waiting) {
+                              return const SplashScreen();
+                            }
+
+                            if (contactsSnapshot.hasData && contactsSnapshot.data != null) {
+                              return HomePage(
+                                user: userSnapshot.data!,
+                                keywordData: keywordSnapshot.data,
+                                contacts: contactsSnapshot.data!,
+                              );
+                            } else {
+                              return const SplashScreen();
+                            }
+                          },
+                        );
+                      } else {
+                        return const SplashScreen();
+                      }
+                    },
+                  );
                 } else {
                   return const SplashScreen();
                 }

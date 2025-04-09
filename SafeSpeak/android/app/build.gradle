@@ -2,43 +2,38 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id 'com.google.gms.google-services' // Ensure this line is present
+    id "com.google.gms.google-services"
 }
+
 android {
-    namespace "com.example.login" // Your application ID
-    compileSdk 35 // Latest stable SDK
+    namespace "com.example.login"
+    compileSdk 35 // Optional: 33 is safe for Java 8 if 35 gives issues
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "1.8"
     }
 
     defaultConfig {
-        applicationId "com.example.login" // Your application ID
+        applicationId "com.example.login"
         minSdkVersion 23
-        targetSdkVersion 34
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
     }
 
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
-        }
-    }
-
     buildFeatures {
-        buildConfig true // Enable custom BuildConfig fields
+        buildConfig true
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug // Use debug signing for now; configure for release later
+            signingConfig = signingConfigs.debug
         }
     }
 }
@@ -48,14 +43,9 @@ flutter {
 }
 
 dependencies {
-    // Use the version from root build.gradle
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation platform('com.google.firebase:firebase-bom:32.7.0') // Latest Firebase BOM
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
     implementation "com.google.firebase:firebase-auth"
     implementation "com.google.firebase:firebase-firestore"
     implementation "com.google.firebase:firebase-messaging"
-}  
-
-kotlin {
-    jvmToolchain(17)
 }

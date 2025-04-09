@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:login/screens/keyword.dart';
-import 'package:login/screens/onboardingB.dart';
 
 void main() {
   runApp(const MaterialApp(

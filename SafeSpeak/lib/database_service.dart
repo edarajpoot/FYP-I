@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:login/model/contactModel.dart';
+import 'package:login/model/keywordModel.dart';
 import 'package:login/model/usermodel.dart';
 import 'package:login/screens/Recordedvoice.dart';
 import 'package:login/screens/history.dart';
-import 'package:login/screens/Setcontact.dart';
+// import 'package:login/screens/Setcontact.dart';
 import 'package:login/screens/keyword.dart';
 import 'package:login/screens/signup.dart';
 
@@ -30,6 +32,55 @@ class DatabaseService {
   }
   return null;
 }
+
+Future<KeywordModel?> getKeywordData(String userId) async {
+  // Fetch the document
+  var snapshot = await FirebaseFirestore.instance
+      .collection('EmergencyAlertKeyword') // Your Firestore collection
+      .where('userID', isEqualTo: userId) // Use the correct case ('UserID')
+      .get();
+
+      print("Fetched documents count: ${snapshot.docs.length}");
+
+  // Check if the document exists
+   if (snapshot.docs.isNotEmpty) {
+    var data = snapshot.docs.first.data();
+    print("Fetched Keyword Data: $data"); // Print the fetched data
+    return KeywordModel.fromMap(snapshot.docs.first.id, data);
+  }
+
+  // No matching document found
+  print("No keyword data found for userID: $userId");
+  return null;
+}
+
+
+
+
+Future<List<ContactModel>> getContactList(String userId, String keywordId) async {
+  try {
+    print("Fetching contacts for userId: $userId and keywordId: $keywordId");
+
+    var snapshot = await FirebaseFirestore.instance
+        .collection('EmergencyContacts')
+        .where('userID', isEqualTo: userId)
+        .where('keywordID', isEqualTo: keywordId)
+        .get();
+
+    // Debug: Print the number of documents returned
+    print("Fetched ${snapshot.docs.length} contacts.");
+
+    return snapshot.docs.map((doc) {
+      return ContactModel.fromMap(doc.id, doc.data());
+    }).toList();
+  } catch (e) {
+    print("Error fetching contact list: $e");
+    return [];
+  }
+}
+
+
+
 
   // 🔹 Create Keyword
   Future<void> createKeyword(EmergencyAlertKeyword keyword, String userId) async {

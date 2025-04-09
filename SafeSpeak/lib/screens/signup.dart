@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:login/database_service.dart';
-import 'package:login/screens/keyword.dart';
 import 'package:login/screens/login.dart';
 import 'package:login/screens/onboardingA.dart';
 import 'package:login/screens/splash.dart';

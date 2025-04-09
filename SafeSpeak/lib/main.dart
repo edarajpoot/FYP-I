@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:firebase_core/firebase_core.dart';
-import 'package:login/screens/Setcontact.dart';
-import 'package:login/screens/onboardingA.dart';
-import 'package:login/screens/savedKeyword.dart';
-import 'package:login/screens/signup.dart';
 import 'package:login/screens/splash.dart';
-// import 'package:login/screens/splash.dart';
-//import 'package:login/screens/keyword.dart';
-import 'package:login/screens/wrapper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'firebase_options.dart';

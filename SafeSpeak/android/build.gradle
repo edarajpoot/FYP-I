@@ -1,13 +1,13 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    ext.kotlin_version = "1.9.22" // Updated to a stable version compatible with Android Gradle Plugin 8.2.2
+    ext.kotlin_version = "1.8.22"     
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath "com.android.tools.build:gradle:8.3.0" // Latest stable AGP
+        classpath "com.android.tools.build:gradle:8.1.2" // Latest stable AGP
         classpath "com.google.gms:google-services:4.4.1" // Latest Google Services plugin
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version" // Kotlin Plugin
     }
@@ -25,7 +25,11 @@ subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
 subprojects {
-    project.evaluationDependsOn(":app")
+    afterEvaluate { project ->
+        if (project.hasProperty("kotlinOptions")) {
+            project.kotlinOptions.jvmTarget = "1.8"
+        }
+    }
 }
 
 tasks.register("clean", Delete) {

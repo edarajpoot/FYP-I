@@ -22,8 +22,8 @@ class EmergencyContact {
 
   Map<String, dynamic> toMap() {
     return {
-      "userId": userID,
-      "keywordId": keywordID,
+      "userID": userID,
+      "keywordID": keywordID,
       "contactName": contactName,
       "contactNumber": contactNumber,
     };
@@ -32,8 +32,8 @@ class EmergencyContact {
   factory EmergencyContact.fromMap(String id, Map<String, dynamic> map) {
     return EmergencyContact(
       contactID: id,
-      userID: map["userId"] ?? "",
-      keywordID: map["keywordId"] ?? "",
+      userID: map["userID"] ?? "",
+      keywordID: map["keywordID"] ?? "",
       contactName: map["contactName"] ?? "",
       contactNumber: map["contactNumber"] ?? "",
     );

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:login/screens/Setcontact.dart';
 import 'package:login/screens/savedKeyword.dart';
-import 'package:login/screens/signup.dart';
 import 'package:login/screens/splash.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 
 class EmergencyAlertKeyword {
@@ -20,8 +17,8 @@ class EmergencyAlertKeyword {
 
   Map<String, dynamic> toMap() {
     return {
-      "UserID": userID,
-      "VoiceText": voiceText,
+      "userID": userID,
+      "voiceText": voiceText,
     };
   }
 
