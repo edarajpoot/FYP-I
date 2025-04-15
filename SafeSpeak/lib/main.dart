@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:login/screens/splash.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -12,6 +14,21 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform
   );
   FirebaseAuth.instance.setLanguageCode("en");
+
+  // Listen for call trigger from background service
+  FlutterBackgroundService().on('make-call').listen((event) async {
+    if (event != null && event['contacts'] != null) {
+      List<dynamic> contacts = event['contacts'];
+      for (var contact in contacts) {
+        String contactNumber = contact['contactNumber'];
+        if (contactNumber != null && contactNumber.isNotEmpty) {
+          print("📞 Calling from MAIN isolate: $contactNumber");
+          await FlutterPhoneDirectCaller.callNumber(contactNumber);
+        }
+      }
+    }
+  });
+
   
   runApp(const MyApp());
 }

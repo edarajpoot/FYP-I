@@ -4,7 +4,6 @@ import 'package:login/model/contactModel.dart';
 import 'package:login/model/keywordModel.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'dart:async';
 
 // Initialize the notification plugin
@@ -39,7 +38,7 @@ Future<void> initializeService(List<ContactModel> contacts, KeywordModel keyword
   await service.configure(
     androidConfiguration: AndroidConfiguration(
       onStart: onStart,
-      isForegroundMode: true, // Foreground service
+      isForegroundMode: true, // Foreground service to keep the service running
       autoStart: true,
       notificationChannelId: 'my_foreground',
       initialNotificationTitle: 'SafeSpeak Running',
@@ -69,6 +68,7 @@ void createNotificationChannel() async {
   flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
 }
+
 bool isCallInProgress = false;
 
 @pragma('vm:entry-point')
@@ -99,54 +99,55 @@ void onStart(ServiceInstance service) async {
 
       if (!isListening) {
         isListening = true;
-
-        speech.listen(
-          onResult: (result) async {
-  String spoken = result.recognizedWords.toLowerCase();
-  print("🗣️ Heard: $spoken");
-
-  if (spoken.contains(keyword) && !isCallInProgress) {
-    print("🚨 Keyword matched! Calling now...");
-    isCallInProgress = true;
-
-    for (var contact in contacts) {
-      await FlutterPhoneDirectCaller.callNumber(contact['contactNumber']);
-    }
-
-    // Wait a few seconds before allowing a new call
-    await Future.delayed(Duration(seconds: 5));
-    isCallInProgress = false;
-  }
-
-  // 🔁 This part is the most important for continuous listening
-  if (result.finalResult) {
-    print("🛑 Final result received. Stopping current session.");
-    isListening = false;
-
-    // Small delay before restarting
-    Future.delayed(Duration(seconds: 1), () {
-      if (!isListening) {
-        print("🔁 Restarting listening session.");
-        service.invoke('start-listening', {
-          'contacts': contacts,
-          'keywordText': keyword,
-        });
-      }
-    });
-  }
-},
-
-
-
-
-          listenFor: Duration(seconds: 30),
-          pauseFor: Duration(seconds: 3),
-          listenMode: ListenMode.dictation,
-          partialResults: true,
-        );
+        await startListeningSession(speech, contacts, keyword, service);
       } else {
         print("⚠️ Already listening, skipping new listen start.");
       }
     }
   });
+}
+
+Future<void> startListeningSession(SpeechToText speech, List<dynamic> contacts, String keyword, ServiceInstance service) async {
+  print("🎤 Starting new listening session...");
+
+  speech.listen(
+    onResult: (result) async {
+      String spoken = result.recognizedWords.toLowerCase();
+      print("🗣️ Heard: $spoken");
+
+      // Phone call logic with error handling
+      if (spoken.contains(keyword) && !isCallInProgress) {
+        print("🚨 Keyword matched! Calling now...");
+        isCallInProgress = true;
+
+        try {
+          service.invoke('make-call', {
+            'contacts': contacts,
+          });
+
+          await Future.delayed(Duration(seconds: 5));
+          isCallInProgress = false;
+        } catch (e) {
+          print("Error sending call request to main isolate: $e");
+        }
+
+        // Wait a few seconds before allowing a new call
+        await Future.delayed(Duration(seconds: 5));
+        isCallInProgress = false;
+      }
+
+      // 🔁 This part is the most important for continuous listening
+      if (result.finalResult) {
+        print("🛑 Final result received. Restarting listening without stopping...");
+        await Future.delayed(Duration(seconds: 1));
+
+        // Keep listening, avoid stopping the session prematurely
+        await startListeningSession(speech, contacts, keyword, service);
+      }
+    },
+    listenFor: Duration(seconds: 30),
+    pauseFor: Duration(seconds: 3),
+    listenMode: ListenMode.dictation,
+    partialResults: true,
+  );
 }
