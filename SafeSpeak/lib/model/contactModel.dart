@@ -13,14 +13,15 @@ class ContactModel {
     required this.contactNumber,
   });
 
-  Map<String, dynamic> toMap() {
-  return {
-    "userID": userID, // Make sure Firestore uses the correct case
-    "keywordID": keywordID,
-    "contactName": contactName,
-    "contactNumber": contactNumber,
-  };
-}
+  Map<String, dynamic> toJson() {
+    return {
+      'contactID': contactID,
+      'contactName': contactName,
+      'contactNumber': contactNumber,
+      'keywordID': keywordID,
+    };
+  }
+
 
 
   factory ContactModel.fromMap(String id, Map<String, dynamic> map) {

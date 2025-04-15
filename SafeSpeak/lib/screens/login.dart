@@ -3,6 +3,7 @@ import 'package:login/database_service.dart';
 import 'package:login/model/contactModel.dart';
 import 'package:login/model/keywordModel.dart';
 import 'package:login/model/usermodel.dart';
+import 'package:login/screens/backgroungServices.dart';
 import 'package:login/screens/home.dart';
 import 'package:login/screens/signup.dart';
 import 'package:login/screens/splash.dart';
@@ -67,19 +68,20 @@ class _LogInScreenState extends State<LogInScreen> {
       }
 
       if (userData != null) {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HomePage(
-                user: userData,
-                keywordData: keywordData,
-                contacts: contacts,
-              ),
-            ),
-          );
-        }
-      } else {
+  if (mounted) {
+    await initializeService(contacts, keywordData!); // ✅ Start service before navigating
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HomePage(
+          user: userData,
+          keywordData: keywordData,
+          contacts: contacts,
+        ),
+      ),
+    );
+  }
+} else {
         showErrorDialog(context, "User data not found.");
       }
     } catch (e) {

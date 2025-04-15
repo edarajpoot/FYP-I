@@ -1,7 +1,9 @@
 import 'dart:math';
 
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:login/model/contactModel.dart';
 import 'package:login/model/keywordModel.dart';
+import 'package:login/screens/backgroungServices.dart';
 import 'package:login/widgets/customappbar.dart';
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
@@ -34,10 +36,11 @@ class _HomePageState extends State<HomePage> {
   var text = 'Hold the button and start speaking';
   var isListening = false;
 
-  Future<void> _makeEmergencyCall() async {
-    const emergencyNumber = '+92 321 7996093'; // Replace with actual emergency number
-    await FlutterPhoneDirectCaller.callNumber(emergencyNumber);
-  }
+
+  Future<void> _makeEmergencyCall(String number) async {
+  await FlutterPhoneDirectCaller.callNumber(number);
+}
+
 
   getRandomQuote() {
     Random random = Random();
@@ -46,25 +49,45 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _requestMicrophonePermission() async {
-    var status = await Permission.microphone.status;
-    if (!status.isGranted) {
-      await Permission.microphone.request();
-      status = await Permission.microphone.status;  // Re-check after requesting
-      if (status.isDenied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microphone permission is required to use speech recognition.')),
-        );
-      }
-    }
+Future<void> _requestMicrophonePermission() async {
+  var status = await Permission.microphone.status;
+
+  if (status.isGranted) {
+    print('Microphone permission already granted');
+    return;
   }
+
+  if (!status.isDenied && !status.isPermanentlyDenied) {
+    print('Waiting for previous permission request to complete...');
+    return;
+  }
+
+  var result = await Permission.microphone.request();
+  print('Microphone permission result: $result');
+}
+
+
 
   @override
   void initState() {
     getRandomQuote();
     _requestMicrophonePermission();
     super.initState();
+    _startBackgroundService();
+
+   if (widget.keywordData != null && widget.contacts.isNotEmpty) {
+    print('✅ Sending keyword to background: ${widget.keywordData!.voiceText}');
+    print('✅ Contacts to background: ${widget.contacts.length}');
+    initializeService(widget.contacts, widget.keywordData!);
+  } else {
+    print('⚠️ No keyword or contacts provided to service');
   }
+  }
+   Future<void> _startBackgroundService() async {
+    await FlutterBackgroundService().startService();
+  }
+
+  
 
   Future<void> signout() async {
     await FirebaseAuth.instance.signOut();
@@ -76,6 +99,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    String keywordText = widget.keywordData?.voiceText ?? 'No Keyword';
+
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: AvatarGlow(
@@ -96,9 +121,20 @@ class _HomePageState extends State<HomePage> {
                       setState(() {
                         text = result.recognizedWords;
                       });
-                      if (result.recognizedWords.toLowerCase().contains('hello')) {
-                        _makeEmergencyCall();
-                      }
+                      String spokenText = result.recognizedWords.toLowerCase();
+                      String keywordText = widget.keywordData?.voiceText.toLowerCase() ?? '';
+
+                      if (spokenText.contains(keywordText)) {
+    // Match found, now find all contacts linked to this keywordID
+    String matchedKeywordID = widget.keywordData?.keywordID ?? '';
+
+    for (var contact in widget.contacts) {
+      if (contact.keywordID == matchedKeywordID) {
+        _makeEmergencyCall(contact.contactNumber);
+        break; // call only the first one, or remove break if you want multiple
+      }
+    }
+  }
                     },
                   );
                 });
@@ -132,7 +168,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Text('User: ${widget.user.name}'),
             Text('Email: ${widget.user.email}'),
-            Text('Keyword: ${widget.keywordData?.voiceText ?? 'No Keyword'}'),
+           Text('Keyword: $keywordText'),
              // Check if contacts are available and display them
             widget.contacts.isEmpty
                 ? const Text('No contacts available.')
@@ -158,6 +194,8 @@ class _HomePageState extends State<HomePage> {
               text,
               style: const TextStyle(fontSize: 24),
             ),
+
+            
           ],
         ),
       ),

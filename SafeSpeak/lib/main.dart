@@ -12,6 +12,7 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform
   );
   FirebaseAuth.instance.setLanguageCode("en");
+  
   runApp(const MyApp());
 }
 
