@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:login/model/contactModel.dart';
@@ -5,6 +6,20 @@ import 'package:login/model/keywordModel.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'dart:async';
+
+// final Telephony telephony = Telephony.instance;
+
+// Future<void> sendEmergencySms(String number, String message) async {
+  
+//   bool? permissionsGranted = await telephony.requestSmsPermissions;
+//     if (permissionsGranted ?? false) {
+//       telephony.sendSms(to: number, message: message);
+//       print("📨 SMS sent from BACKGROUND isolate: $number");
+//     } else {
+//       print("❌ SMS permission not granted (background isolate)");
+//     }
+// }
+
 
 // Initialize the notification plugin
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -18,6 +33,8 @@ Future<void> initializeService(List<ContactModel> contacts, KeywordModel keyword
   // Requesting permissions
   await Permission.microphone.request();
   await Permission.phone.request();
+  await Permission.sms.request();
+
 
   // Check if permissions are granted
   PermissionStatus microphoneStatus = await Permission.microphone.status;
@@ -73,6 +90,7 @@ bool isCallInProgress = false;
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
+  WidgetsFlutterBinding.ensureInitialized();
   print("✅ Speech is listening");
 
   final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -84,6 +102,28 @@ void onStart(ServiceInstance service) async {
     print("Speech recognition not available.");
     return;
   }
+
+//   service.on('send-sms').listen((event) async {
+//   if (event != null) {
+//     print("📥 Received send-sms event: $event");
+
+//     final number = event['number'];
+//     final message = event['message'];
+
+//     print("📲 Attempting to send SMS in background to $number");
+
+//     bool? permissionsGranted = await telephony.requestSmsPermissions;
+//     if (permissionsGranted ?? false) {
+//       telephony.sendSms(to: number, message: message);
+//       print("📨 SMS sent from BACKGROUND isolate: $number");
+//     } else {
+//       print("❌ SMS permission not granted (background isolate)");
+//     }
+//   } else {
+//     print("❌ No data received in send-sms event");
+//   }
+// });
+
 
   List<dynamic> contacts = [];
   String keyword = "";
@@ -121,15 +161,48 @@ Future<void> startListeningSession(SpeechToText speech, List<dynamic> contacts, 
         isCallInProgress = true;
 
         try {
-          service.invoke('make-call', {
-            'contacts': contacts,
-          });
+    // 🔁 Loop for both SMS and Call
+    for (var contact in contacts) {
+      String number = contact['contactNumber'];
 
-          await Future.delayed(Duration(seconds: 5));
-          isCallInProgress = false;
-        } catch (e) {
-          print("Error sending call request to main isolate: $e");
-        }
+      // Send SMS
+      // print("📡 Invoking send-sms for $number from main isolate");
+      // await Future.delayed(Duration(seconds: 2));
+      // service.invoke('send-sms', {
+      //   'number': number,
+      //   'message': "🚨 Emergency! Please help.",
+      // });
+      // print("📡 Invoking send-sms with number: $number, message: Emergency alert");
+
+//       bool permissionGranted = await Permission.sms.request().isGranted;
+// if (permissionGranted) {
+//   SmsSender sender = SmsSender();
+//   SmsMessage sms = SmsMessage(number, "🚨 Emergency! Please help.");
+//   sms.onStateChanged.listen((state) {
+//     print('📨 SMS State in background: $state');
+//   });
+//   sender.sendSms(sms);
+//   print("📨 SMS sent to $number");
+// } else {
+//   print("❌ SMS permission denied in background");
+// }
+
+
+      // print("Sending Message from MAIN isolate: $contact");
+      // sendSmsMessage(contact, "🚨 This is an emergency! Please help.");
+
+      // Make Call
+      await Future.delayed(Duration(seconds: 2));
+      service.invoke('make-call', {
+        'contacts': [contact],
+      });
+
+      await Future.delayed(Duration(seconds: 5));
+    }
+
+  } catch (e) {
+    print("❌ Error during emergency handling: $e");
+  }
 
         // Wait a few seconds before allowing a new call
         await Future.delayed(Duration(seconds: 5));
@@ -145,9 +218,6 @@ Future<void> startListeningSession(SpeechToText speech, List<dynamic> contacts, 
         await startListeningSession(speech, contacts, keyword, service);
       }
     },
-    listenFor: Duration(seconds: 30),
-    pauseFor: Duration(seconds: 3),
-    listenMode: ListenMode.dictation,
-    partialResults: true,
   );
+
 }

@@ -6,30 +6,50 @@ import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:login/screens/splash.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:login/util/emergency.dart';
 import 'firebase_options.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseAuth.instance.setLanguageCode("en");
+  
+
+  // final Telephony telephony = Telephony.instance;
+  // bool? permissionsGranted = await telephony.requestSmsPermissions;
+
+  // if (permissionsGranted == true) {
+  //   print("✅ SMS permission granted");
+  // } else {
+  //   print("❌ SMS permission denied");
+  // }
 
   // Listen for call trigger from background service
+  void setupBackgroundListeners() {
   FlutterBackgroundService().on('make-call').listen((event) async {
     if (event != null && event['contacts'] != null) {
       List<dynamic> contacts = event['contacts'];
+      FlutterBackgroundService().invoke("setAsForeground");
+
       for (var contact in contacts) {
         String contactNumber = contact['contactNumber'];
-        if (contactNumber != null && contactNumber.isNotEmpty) {
+
+        if (contactNumber.isNotEmpty) {
+          print("Sending Message from MAIN isolate: $contactNumber");
+          sendSmsMessage(contactNumber, "🚨 This is an emergency! Please help.");
+
           print("📞 Calling from MAIN isolate: $contactNumber");
           await FlutterPhoneDirectCaller.callNumber(contactNumber);
+
+          await Future.delayed(Duration(seconds: 5));
         }
       }
     }
   });
+}
 
-  
+ setupBackgroundListeners();
+
   runApp(const MyApp());
 }
 
